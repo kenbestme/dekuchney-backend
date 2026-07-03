@@ -1,17 +1,19 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import pool from '../config/db';
 
-// Helper function to generate JWT – fixed TypeScript overload error
+// Helper function to generate JWT – fixed TypeScript overload error on expiresIn
 const generateToken = (id: string, role: string) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET is not defined');
 
-  // ✅ Cast secret to `any` to bypass TypeScript overload issues
-  return jwt.sign({ id, role }, secret as any, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+  // ✅ Properly cast `expiresIn` to satisfy TypeScript v9 strict type checking
+  const options: SignOptions = {
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+  };
+
+  return jwt.sign({ id, role }, secret, options);
 };
 
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
