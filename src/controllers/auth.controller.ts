@@ -3,13 +3,16 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db';
 
-// Helper function to generate JWT
+// Helper function to generate JWT – fixed TypeScript overload error
 const generateToken = (id: string, role: string) => {
-  // Using a fallback secret just in case your .env file isn't set up yet
+  // ✅ Explicitly ensure secret is a string (fallback + casting)
   const secret = process.env.JWT_SECRET || 'dekuchney_secure_key_2026';
-  return jwt.sign({ id, role }, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+  if (!secret) throw new Error('JWT_SECRET is not defined');
+
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+
+  // ✅ Explicit casting to satisfy TypeScript overloads
+  return jwt.sign({ id, role }, secret as string, { expiresIn });
 };
 
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
@@ -27,11 +30,11 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // 2. Hash the password for security
+    // 2. Hash the password
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    // 3. Save user to the database (MySQL handles the ID automatically)
+    // 3. Save user to database
     const [result]: any = await pool.query(
       `INSERT INTO users (first_name, last_name, email, password_hash, phone, role) 
        VALUES (?, ?, ?, ?, ?, 'customer')`,
@@ -58,7 +61,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // 1. Find the user by email
+    // 1. Find user by email
     const [users]: any = await pool.query(
       'SELECT * FROM users WHERE email = ?',
       [email]
@@ -71,7 +74,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     const user = users[0];
 
-    // 2. Verify the password
+    // 2. Verify password
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       res.status(401).json({ success: false, message: 'Invalid email or password' });
