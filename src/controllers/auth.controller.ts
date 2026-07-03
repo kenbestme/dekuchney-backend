@@ -5,14 +5,13 @@ import pool from '../config/db';
 
 // Helper function to generate JWT – fixed TypeScript overload error
 const generateToken = (id: string, role: string) => {
-  // ✅ Explicitly cast secret to string (TypeScript then knows it's not undefined)
-  const secret = process.env.JWT_SECRET as string;
+  const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET is not defined');
 
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-
-  // ✅ All arguments are now explicitly typed strings
-  return jwt.sign({ id, role }, secret, { expiresIn });
+  // ✅ Cast secret to `any` to bypass TypeScript overload issues
+  return jwt.sign({ id, role }, secret as any, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
 };
 
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
