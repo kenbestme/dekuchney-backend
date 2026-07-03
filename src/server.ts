@@ -3,20 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 
-const app: Application = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors());
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
-app.use(express.json());
-
-// add this here
-app.get('/', (req: Request, res: Response) => {
-  res.send('API is running');
-});
-
-app.use('/upload', uploadRoutes);
-
 // Import Routes
 import roomRoutes from './routes/room.routes';
 import bookingRoutes from './routes/booking.routes';
@@ -27,7 +13,7 @@ import authRoutes from './routes/auth.routes';
 import reviewsRoutes from './routes/reviews.routes';
 import galleryRoutes from './routes/gallery.routes';
 import uploadRoutes from './routes/upload.routes';
-import communicationsRoutes from './routes/communications.routes'; // ✅ NEW
+import communicationsRoutes from './routes/communications.routes';
 
 // Import Scheduler
 import { startEmailScheduler } from './scheduler';
@@ -40,33 +26,31 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// API Routes
+// Test routes
+app.get('/', (req: Request, res: Response) => {
+  res.send('API is running');
+});
+
+app.get('/health', (req: Request, res: Response) => {
+  res.json({ ok: true });
+});
+
+// Mount routes
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/payments', opayRoutes);
+app.use('/api/opay', opayRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/communications', communicationsRoutes); // ✅ NEW
+app.use('/api/communications', communicationsRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'active', timestamp: new Date().toISOString() });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
+// Start scheduler
+startEmailScheduler();
 
 app.listen(PORT, () => {
-  console.log(`✅ Server active on http://localhost:${PORT}`);
-  
-  // ✅ Start the email scheduler
-  startEmailScheduler();
+  console.log(`Server running on port ${PORT}`);
 });
